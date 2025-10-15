@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Model Error</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    pre { background:#f5f5f5; padding:15px; border-radius:6px; }
+    a { color: #0077cc; }
+  </style>
+</head>
+<body>
+  <h1>Model Not Found / API Error</h1>
+  <p>The model configured in <code>app.py</code> could not be used by your account or API version.</p>
+  <p>Follow these steps:</p>
+  <ol>
+    <li>Open a terminal in your project folder.</li>
+    <li>Run: <code>python list_models.py</code></li>
+    <li>Copy one of the model names shown by that script.</li>
+    <li>Edit <code>app.py</code> and set <code>MODEL_NAME</code> to the chosen model name, then restart the app.</li>
+  </ol>
+
+  <h3>Details</h3>
+  <pre>{{ error_message }}</pre>
+
+  <p>If you want, paste the output of <code>list_models.py</code> here and I’ll tell you which model to pick.</p>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tech Product Cost Analyzer</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .container { position: relative; }
+
+    .input-wrapper {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    #placeInput {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    #suggestions {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      z-index: 9999;
+      max-height: 220px;
+      overflow-y: auto;
+      background: #ffffff;
+      border: 1px solid #d0d7de;
+      box-shadow: 0 6px 18px rgba(33,37,41,0.08);
+      border-radius: 8px;
+      display: none;
+    }
+
+    .suggestion-item {
+      padding: 10px 12px;
+      cursor: pointer;
+      font-size: 15px;
+      color: #1f2937;
+    }
+
+    .suggestion-item:hover,
+    .suggestion-item.active {
+      background: #eef6ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧠 Tech Product Cost Analyzer</h1>
+    <form method="POST" action="{{ url_for('results') }}">
+      <label>Enter Product Name:</label>
+      <input type="text" name="product_name" placeholder="e.g., AR Photo Booth" required>
+
+      <label>Enter Place / Country:</label>
+      <div class="input-wrapper">
+        <input type="text" id="placeInput" name="place" placeholder="e.g., Saudi Arabia" autocomplete="off" required>
+        <div id="suggestions" role="listbox" aria-label="Country suggestions"></div>
+      </div>
+
+      <button type="submit">Analyze Cost</button>
+    </form>
+  </div>
+
+  <script>
+    let countryNames = [];
+    (async function loadCountries(){
+      try {
+        const resp = await fetch('https://restcountries.com/v3.1/all?fields=name');
+        const all = await resp.json();
+        countryNames = all
+          .map(c => c?.name?.common)
+          .filter(Boolean)
+          .sort((a,b) => a.localeCompare(b));
+      } catch (err) {
+        console.error("Could not load country list:", err);
+      }
+    })();
+
+    const placeInput = document.getElementById('placeInput');
+    const suggestions = document.getElementById('suggestions');
+    let currentFocus = -1;
+    let currentMatches = [];
+
+    function showSuggestions(matches) {
+      suggestions.innerHTML = '';
+      if (!matches || matches.length === 0) {
+        suggestions.style.display = 'none';
+        return;
+      }
+      matches.forEach((name, idx) => {
+        const div = document.createElement('div');
+        div.className = 'suggestion-item';
+        div.setAttribute('role', 'option');
+        div.textContent = name;
+        div.addEventListener('click', () => {
+          placeInput.value = name;
+          suggestions.innerHTML = '';
+          suggestions.style.display = 'none';
+        });
+        suggestions.appendChild(div);
+      });
+      currentFocus = -1;
+      suggestions.style.display = 'block';
+    }
+
+    function filterCountries(query) {
+      if (!query || countryNames.length === 0) return [];
+      const q = query.toLowerCase();
+      const starts = countryNames.filter(n => n.toLowerCase().startsWith(q));
+      const includes = countryNames.filter(n => !n.toLowerCase().startsWith(q) && n.toLowerCase().includes(q));
+      const combined = starts.concat(includes);
+      return combined.slice(0, 8);
+    }
+
+    placeInput.addEventListener('input', (e) => {
+      const q = e.target.value.trim();
+      if (q.length < 1) {
+        suggestions.innerHTML = '';
+        suggestions.style.display = 'none';
+        return;
+      }
+      currentMatches = filterCountries(q);
+      showSuggestions(currentMatches);
+    });
+
+    placeInput.addEventListener('keydown', (e) => {
+      const items = suggestions.querySelectorAll('.suggestion-item');
+      if (!items.length) return;
+
+      if (e.key === 'ArrowDown') {
+        currentFocus++;
+        if (currentFocus >= items.length) currentFocus = items.length - 1;
+        setActive(items, currentFocus);
+        e.preventDefault();
+      } else if (e.key === 'ArrowUp') {
+        currentFocus--;
+        if (currentFocus < 0) currentFocus = 0;
+        setActive(items, currentFocus);
+        e.preventDefault();
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (currentFocus > -1) {
+          items[currentFocus].click();
+        } else {
+          suggestions.innerHTML = '';
+          suggestions.style.display = 'none';
+        }
+      } else if (e.key === 'Escape') {
+        suggestions.innerHTML = '';
+        suggestions.style.display = 'none';
+      }
+    });
+
+    function setActive(items, idx) {
+      items.forEach((el, i) => {
+        if (i === idx) el.classList.add('active'); else el.classList.remove('active');
+      });
+      const active = items[idx];
+      if (active) active.scrollIntoView({ block: 'nearest' });
+    }
+
+    document.addEventListener('click', (ev) => {
+      if (!ev.target.closest('.input-wrapper')) {
+        suggestions.innerHTML = '';
+        suggestions.style.display = 'none';
+      }
+    });
+
+    placeInput.addEventListener('focus', () => {
+      const q = placeInput.value.trim();
+      if (q.length > 0) {
+        currentMatches = filterCountries(q);
+        showSuggestions(currentMatches);
+      }
+    });
+  </script>
+</body>
+</html>
